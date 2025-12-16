@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stack - Sidebar</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Sidebar-specific overrides */
+        body {
+            background: linear-gradient(135deg, rgba(30, 30, 40, 0.95), rgba(20, 20, 30, 0.98));
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .sidebar-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: move;
+            -webkit-app-region: drag;
+        }
+
+        .sidebar-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #a78bfa, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+        }
+
+        .sidebar-header .hotkey-hint {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .sidebar-header .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            -webkit-app-region: no-drag;
+        }
+
+        .close-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            color: rgba(239, 68, 68, 0.9);
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(239, 68, 68, 0.4);
+            border-color: rgba(239, 68, 68, 0.6);
+        }
+
+        .clips-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .clip-mini {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .clip-mini:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(167, 139, 250, 0.4);
+            transform: translateX(4px);
+        }
+
+        .clip-mini .source {
+            font-size: 10px;
+            color: rgba(167, 139, 250, 0.8);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .clip-mini .source .app-icon {
+            width: 12px;
+            height: 12px;
+            background: rgba(167, 139, 250, 0.3);
+            border-radius: 3px;
+        }
+
+        .clip-mini .content {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .clip-mini .delete-btn {
+            opacity: 0;
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(239, 68, 68, 0.8);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: opacity 0.2s;
+        }
+
+        .clip-mini:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .clip-mini {
+            position: relative;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.4);
+            padding: 40px 20px;
+        }
+
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .capture-flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(167, 139, 250, 0.3);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .capture-flash.active {
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar-container">
+        <header class="sidebar-header">
+            <h1>📋 Stack</h1>
+            <div class="header-right">
+                <span class="hotkey-hint">Ctrl+Shift+C</span>
+                <button class="close-btn" id="close-btn" title="Close sidebar">×</button>
+            </div>
+        </header>
+
+        <div class="clips-list" id="clips-list">
+            <!-- Clips will be rendered here -->
+        </div>
+
+        <div class="capture-flash" id="capture-flash"></div>
+    </div>
+
+    <script type="module" src="sidebar.js"></script>
+</body>
+
+</html>

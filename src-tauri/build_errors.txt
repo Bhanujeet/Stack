@@ -1,0 +1,32 @@
+﻿cargo :    Compiling stack v0.1.0 (C:\
+Users\solvr\Downloads\STACK\stack\src-
+tauri)
+At line:1 char:54
++ ... h = "$env:USERPROFILE\.cargo\bin
+;$env:Path"; cargo build 2>&1 | Out-F 
+...
++                                     
+             ~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpec 
+   ified: (   Compiling st...tack\sr  
+  c-tauri):String) [], RemoteExcept   
+ ion
+    + FullyQualifiedErrorId : NativeC 
+   ommandError
+ 
+warning: unused import: `Manager`
+ --> src\lib.rs:7:25
+  |
+7 |     AppHandle, Emitter, Manager, 
+WebviewUrl, WebviewWindowBuilder,
+  |                         ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` 
+(part of `#[warn(unused)]`) on by 
+default
+
+warning: `stack` (lib) generated 1 
+warning
+    Finished `dev` profile 
+[unoptimized + debuginfo] target(s) 
+in 34.09s
