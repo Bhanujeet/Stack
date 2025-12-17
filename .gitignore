@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local Storage (Safety)
+pastebooks.json
+gcp-key.json
+

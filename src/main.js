@@ -264,6 +264,24 @@ function setupEventListeners() {
   btnCopyAll.addEventListener('click', copyAll);
   btnClearAll.addEventListener('click', confirmClearAll);
 
+  // AI Buttons
+  document.getElementById('btn-magic-sort').addEventListener('click', handleMagicSort);
+  document.getElementById('btn-chat-toggle').addEventListener('click', toggleChatDrawer);
+  document.getElementById('btn-chat-close').addEventListener('click', toggleChatDrawer);
+  document.getElementById('btn-chat-send').addEventListener('click', handleChatSubmit);
+  document.getElementById('chat-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleChatSubmit();
+    }
+  });
+
+  // Settings Modal
+  document.getElementById('settings-save').addEventListener('click', saveSettings);
+  document.getElementById('settings-cancel').addEventListener('click', closeSettingsModal);
+  document.getElementById('btn-check-models').addEventListener('click', checkModels);
+  document.getElementById('btn-check-models').addEventListener('click', checkModels);
+
   // Modal
   modalCancel.addEventListener('click', closeModal);
   modalConfirm.addEventListener('click', executeModalAction);
@@ -516,6 +534,136 @@ async function clearAll() {
   } catch (error) {
     console.error('Clear failed:', error);
     showToast('Failed to clear clips', 'error');
+  }
+}
+// ==================== AI FEATURES ====================
+
+async function handleMagicSort() {
+  const btn = document.getElementById('btn-magic-sort');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '✨ Sorting...';
+
+  try {
+    await invoke('magic_sort');
+    await loadClips();
+    showToast('✨ Stack sorted magically!', 'success');
+  } catch (error) {
+    console.error('Magic sort failed:', error);
+    if (error.includes("API Key")) {
+      openSettingsModal();
+      showToast('Please enter your AI Studio API Key', 'error');
+    } else {
+      showToast('Magic sort failed: ' + error, 'error');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+// Chat
+const chatDrawer = document.getElementById('chat-drawer');
+const chatInput = document.getElementById('chat-input');
+const chatMessages = document.getElementById('chat-messages');
+
+function toggleChatDrawer() {
+  chatDrawer.classList.toggle('active');
+  if (chatDrawer.classList.contains('active')) {
+    setTimeout(() => chatInput.focus(), 300);
+  }
+}
+
+async function handleChatSubmit() {
+  const prompt = chatInput.value.trim();
+  if (!prompt) return;
+
+  // Add user message
+  appendChatMessage(prompt, 'user');
+  chatInput.value = '';
+
+  // Show loading state
+  appendChatMessage('Thinking... 🤔', 'bot', true);
+
+  try {
+    const response = await invoke('chat_submit', { prompt });
+    // Remove loading message
+    const loader = chatMessages.querySelector('.loading');
+    if (loader) loader.remove();
+
+    // Add bot response
+    appendChatMessage(response, 'bot');
+  } catch (error) {
+    const loader = chatMessages.querySelector('.loading');
+    if (loader) loader.remove();
+
+    if (error.includes("API Key")) {
+      appendChatMessage("Please set your API Key in Settings.", 'bot');
+      openSettingsModal();
+    } else {
+      appendChatMessage("Error: " + error, 'bot');
+    }
+  }
+}
+
+function appendChatMessage(text, sender, isLoading = false) {
+  const div = document.createElement('div');
+  div.className = `chat-message ${sender} ${isLoading ? 'loading' : ''}`;
+  div.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
+  chatMessages.appendChild(div);
+  chatMessages.scrollTo(0, chatMessages.scrollHeight);
+}
+
+// Settings (API Key)
+const settingsModalOverlay = document.getElementById('settings-modal-overlay');
+const apiKeyInput = document.getElementById('api-key-input');
+
+function openSettingsModal() {
+  settingsModalOverlay.classList.add('active');
+}
+
+function closeSettingsModal() {
+  settingsModalOverlay.classList.remove('active');
+}
+
+async function saveSettings() {
+  const apiKey = apiKeyInput.value.trim();
+  if (!apiKey) {
+    showToast('API Key cannot be empty', 'error');
+    return;
+  }
+
+  try {
+    await invoke('set_api_key', { apiKey });
+    closeSettingsModal();
+    showToast('API Key saved!', 'success');
+  } catch (error) {
+    showToast('Failed to save settings', 'error');
+  }
+}
+
+async function checkModels() {
+  const listDiv = document.getElementById('models-list');
+  listDiv.innerHTML = 'Loading models...';
+
+  try {
+    const models = await invoke('get_models');
+    console.log('Available models:', models);
+
+    if (models.length === 0) {
+      listDiv.innerHTML = 'No models found supporting generateContent';
+      return;
+    }
+
+    const cleanModels = models.map(m => m.replace('models/', ''));
+    listDiv.innerHTML = '<strong>Available:</strong><br>' + cleanModels.join('<br>');
+
+  } catch (error) {
+    console.error('List models failed:', error);
+    listDiv.innerHTML = '<span style="color: var(--error)">Error: ' + error + '</span>';
+    if (error.includes("API Key")) {
+      showToast('Save your API Key first!', 'error');
+    }
   }
 }
 

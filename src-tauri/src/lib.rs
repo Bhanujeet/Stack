@@ -1,13 +1,16 @@
 mod storage;
 mod window;
 mod input;
+mod ai;
 
 use std::sync::Mutex;
 use storage::{AppStorage, ClipObject, Pastebook};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager, Emitter};
 use tauri_plugin_clipboard_manager::ClipboardExt;
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use window::get_active_window_info;
+use uuid::Uuid;
+use ai::GeminiClient;
 
 // Global storage state
 struct AppState {
@@ -16,6 +19,108 @@ struct AppState {
 
 // ==================== CLIP COMMANDS ====================
 
+#[tauri::command]
+fn greet(name: &str) -> String {
+    format!("Hello, {}! You've been greeted from Rust!", name)
+}
+
+#[tauri::command]
+async fn set_api_key(api_key: String, state: tauri::State<'_, AppState>) -> Result<(), String> {
+    let mut storage = state.storage.lock().unwrap();
+    storage.api_key = Some(api_key);
+    storage.save().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn magic_sort(state: tauri::State<'_, AppState>) -> Result<Vec<String>, String> {
+    // Get data in a block to drop the lock immediately
+    let (api_key, clips_content) = {
+        let storage = state.storage.lock().unwrap();
+        let api_key = storage.api_key.clone()
+            .or_else(|| std::env::var("GOOGLE_API_KEY").ok())
+            .or_else(|| std::env::var("GEMINI_API_KEY").ok())
+            .ok_or("API Key not found")?;
+        let clips_content = storage.get_all_content();
+        (api_key, clips_content)
+    };
+
+    if clips_content.is_empty() {
+        return Err("No clips to sort".to_string());
+    }
+    
+    let client = GeminiClient::new(api_key);
+    let json_indices = client.magic_sort(&clips_content).await?;
+    
+    // Parse indices
+    let indices: Vec<usize> = serde_json::from_str(&json_indices)
+        .map_err(|e| format!("Failed to parse AI response: {}", e))?;
+        
+    // Reorder clips in storage
+    let mut storage = state.storage.lock().unwrap();
+    let pastebook = storage.get_active_pastebook().ok_or("No active pastebook")?;
+    let current_ids: Vec<String> = pastebook.clips.iter().map(|c| c.id.clone()).collect();
+    
+    let mut new_ids = Vec::new();
+    
+    // Map indices back to IDs
+    for idx in indices {
+        if let Some(id) = current_ids.get(idx) {
+            new_ids.push(id.clone());
+        }
+    }
+    
+    // Add any missing IDs (if AI hallucinated or skipped)
+    for id in &current_ids {
+        if !new_ids.contains(id) {
+            new_ids.push(id.clone());
+        }
+    }
+    
+    storage.reorder_clips(new_ids.clone());
+    storage.save().map_err(|e| e.to_string())?;
+    
+    Ok(new_ids)
+}
+
+#[tauri::command]
+async fn chat_submit(prompt: String, state: tauri::State<'_, AppState>) -> Result<String, String> {
+    let (api_key, context_clips) = {
+        let storage = state.storage.lock().unwrap();
+        let api_key = storage.api_key.clone()
+            .or_else(|| std::env::var("GOOGLE_API_KEY").ok())
+            .or_else(|| std::env::var("GEMINI_API_KEY").ok())
+            .ok_or("API Key not found")?;
+        
+        // Optimize: Limit context to last 10 clips to avoid token limits on free tier
+        let context_clips = storage.get_active_pastebook()
+            .map(|p| p.clips.iter().take(10).map(|c| c.content.clone()).collect::<Vec<_>>().join("\n---\n"))
+            .unwrap_or_default();
+            
+        (api_key, context_clips)
+    };
+    
+    let client = GeminiClient::new(api_key);
+    let full_prompt = format!(
+        "Context from my clipboard stack:\n{}\n\nUser Question: {}", 
+        context_clips, prompt
+    );
+    
+    client.chat("gemini-flash-latest", &full_prompt).await
+}
+
+#[tauri::command]
+async fn get_models(state: tauri::State<'_, AppState>) -> Result<Vec<String>, String> {
+    let api_key = {
+        let storage = state.storage.lock().unwrap();
+        storage.api_key.clone()
+            .or_else(|| std::env::var("GOOGLE_API_KEY").ok())
+            .or_else(|| std::env::var("GEMINI_API_KEY").ok())
+            .ok_or("API Key not found. Please set it in Settings or via GOOGLE_API_KEY env var.")?
+    };
+    
+    let client = GeminiClient::new(api_key);
+    client.list_models().await
+}
 /// Get all clips from active pastebook
 #[tauri::command]
 fn get_clips(state: tauri::State<AppState>) -> Vec<ClipObject> {
@@ -174,23 +279,25 @@ pub fn run() {
             storage: Mutex::new(AppStorage::load()),
         })
         .invoke_handler(tauri::generate_handler![
-            // Clip commands
+            greet,
+            set_api_key,
+            get_models,
+            magic_sort,
+            chat_submit,
             get_clips,
             capture_clip,
             delete_clip,
             update_clip,
             reorder_clips,
             merge_clips,
-            get_all_content,
             copy_all_to_clipboard,
             clear_all_clips,
-            // Pastebook commands
             list_pastebooks,
             get_active_pastebook,
             create_pastebook,
             switch_pastebook,
             delete_pastebook,
-            rename_pastebook,
+            rename_pastebook
         ])
         .setup(|app| {
             // Register global hotkey (Ctrl+Shift+C)

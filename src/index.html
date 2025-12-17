@@ -374,6 +374,12 @@
         <span class="selection-info" id="selection-info"></span>
       </div>
       <div class="toolbar-right">
+        <button class="btn btn-primary" id="btn-magic-sort" title="Automatically reorder clips using AI">
+          ✨ Magic Sort
+        </button>
+        <button class="btn btn-secondary" id="btn-chat-toggle" title="Chat with your clips">
+          💬 Chat
+        </button>
         <input type="text" id="search-input" placeholder="🔍 Search clips..." style="width: 200px;">
       </div>
     </div>
@@ -384,6 +390,46 @@
         <!-- Clips will be rendered here -->
       </div>
     </main>
+  </div>
+
+  </div>
+
+  <!-- Chat Drawer -->
+  <div class="chat-drawer" id="chat-drawer">
+    <div class="chat-header">
+      <h3 class="chat-title">💬 Chat with Stack</h3>
+      <button class="btn-icon" id="btn-chat-close">✕</button>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-message bot">
+        Hello! I can analyze your active clips. Ask me anything!
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <textarea id="chat-input" placeholder="Ask a question..." rows="1"></textarea>
+      <button class="btn btn-primary" id="btn-chat-send">Send</button>
+    </div>
+  </div>
+
+  <!-- Settings Modal (API Key) -->
+  <div class="modal-overlay" id="settings-modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Settings</h3>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 10px;">Enter your Google AI Studio API Key to enable AI features.</p>
+        <input type="password" id="api-key-input" class="modal-input" placeholder="AI Studio API Key">
+        <p style="font-size: 11px; color: var(--text-muted);">
+          Get a key for free at <a href="https://aistudio.google.com/app/apikey" target="_blank"
+            style="color: var(--accent-primary);">aistudio.google.com</a>
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="settings-cancel">Cancel</button>
+        <button class="btn btn-primary" id="settings-save">Save</button>
+      </div>
+    </div>
   </div>
 
   <!-- Confirm Modal -->

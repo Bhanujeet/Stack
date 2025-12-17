@@ -64,6 +64,8 @@ impl Pastebook {
 pub struct AppStorage {
     pub pastebooks: Vec<Pastebook>,
     pub active_pastebook_id: Option<String>,
+    #[serde(default)]
+    pub api_key: Option<String>,
 }
 
 impl Default for AppStorage {
@@ -74,6 +76,7 @@ impl Default for AppStorage {
         Self {
             pastebooks: vec![default_pastebook],
             active_pastebook_id: Some(default_id),
+            api_key: None,
         }
     }
 }
